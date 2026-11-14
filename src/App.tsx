@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import type { ChangeEvent } from 'react';
+import { MAX_BACKUP_SIZE, parseBackup, serializeBackup } from './backup.ts';
 import { addDays, dateKey, monthDays } from './dates.ts';
 import { durations, makePlan, summarize } from './plan.ts';
 import type { Duration, ReadingPlan, ReadingState } from './plan.ts';
@@ -24,6 +26,7 @@ export default function App() {
   const [targetDate, setTargetDate] = useState('');
   const [monthView, setMonthView] = useState('');
   const [noteKey, setNoteKey] = useState('');
+  const [backupFeedback, setBackupFeedback] = useState<{ message: string; error: boolean } | null>(null);
   const byDate = useMemo(() => new Map(plan.map(entry => [entry.date, entry])), [plan]);
   const selected = byDate.get(targetDate) ?? byDate.get(today) ??
     plan.find(entry => !current.done[entry.day]) ?? plan[0];
@@ -55,6 +58,45 @@ export default function App() {
     });
   }
 
+  function exportData() {
+    try {
+      const backup = serializeBackup(state);
+      const url = URL.createObjectURL(new Blob([backup], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'plano-leitura-backup-' + today + '.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setBackupFeedback({ message: 'Backup preparado para download.', error: false });
+    } catch {
+      setBackupFeedback({ message: 'Não foi possível exportar os dados atuais.', error: true });
+    }
+  }
+
+  async function importData(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      if (file.size > MAX_BACKUP_SIZE) throw new Error('O arquivo excede o limite de 1 MB.');
+      const imported = parseBackup(await file.text());
+      if (!window.confirm('Restaurar este backup? Os planos e anotações atuais serão substituídos.')) return;
+      setState(imported);
+      setDuration(durations.find(value => imported.plans[value]) ?? duration);
+      setTargetDate('');
+      setMonthView('');
+      setNoteKey('');
+      setBackupFeedback({ message: 'Backup restaurado. Confira seus planos e anotações.', error: false });
+    } catch (cause) {
+      setBackupFeedback({
+        message: cause instanceof Error ? cause.message : 'Não foi possível ler o backup.',
+        error: true,
+      });
+    }
+  }
+
   return <div className="stack">
     {error && <p role="alert" className="error">{error}</p>}
     <section className="panel stack" aria-label="Plano e metas">
@@ -82,6 +124,19 @@ export default function App() {
       </div>
       <progress value={stats.percent} max={100} aria-label="Percentual de capítulos lidos" />
       <p className="muted">Meta atual de {selected.chapters.length} capítulos no dia {selected.day}. Reagendar mantém as marcações por número de dia.</p>
+    </section>
+    <section className="panel stack" aria-label="Backup dos dados">
+      <div>
+        <h2>Backup dos seus estudos</h2>
+        <p className="muted">Salve seus planos, leituras concluídas e anotações em um arquivo JSON. Os dados permanecem no seu dispositivo.</p>
+      </div>
+      <div className="two collapse">
+        <button onClick={exportData}>Baixar backup</button>
+        <label>Restaurar backup (.json)
+          <input type="file" accept=".json,application/json" onChange={importData} />
+        </label>
+      </div>
+      {backupFeedback && <p role={backupFeedback.error ? 'alert' : 'status'} className={backupFeedback.error ? 'error' : 'muted'}>{backupFeedback.message}</p>}
     </section>
     <div className="split">
       <section className="panel stack">
