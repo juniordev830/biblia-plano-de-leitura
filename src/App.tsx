@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { MAX_BACKUP_SIZE, parseBackup, serializeBackup } from './backup.ts';
+import { parseBackup, serializeBackup, validateBackupSize } from './backup.ts';
 import { addDays, dateKey, monthDays } from './dates.ts';
 import { durations, makePlan, summarize } from './plan.ts';
 import type { Duration, ReadingPlan, ReadingState } from './plan.ts';
@@ -18,7 +18,7 @@ const monthOffset = (month: string, delta: number) => {
 
 export default function App() {
   const today = dateKey();
-  const [state, setState, error] = useLocalState('leitura-v1', initial);
+  const [state, setState, error, replaceState] = useLocalState('leitura-v1', initial);
   const [duration, setDuration] = useState<Duration>(365);
   const [placeholderStart] = useState(today);
   const current = state.plans[duration] ?? { start: placeholderStart, done: {} };
@@ -80,10 +80,10 @@ export default function App() {
     event.target.value = '';
     if (!file) return;
     try {
-      if (file.size > MAX_BACKUP_SIZE) throw new Error('O arquivo excede o limite de 1 MB.');
+      validateBackupSize(file.size);
       const imported = parseBackup(await file.text());
       if (!window.confirm('Restaurar este backup? Os planos e anotações atuais serão substituídos.')) return;
-      setState(imported);
+      replaceState(imported);
       setDuration(durations.find(value => imported.plans[value]) ?? duration);
       setTargetDate('');
       setMonthView('');

@@ -2,7 +2,7 @@
 
 Planos de 30, 90, 180 e 365 dias distribuídos pelos 1.189 capítulos; calendário, progresso, histórico e notas locais.
 
-Você também pode usar **Baixar backup** para salvar seus planos, marcações e anotações em JSON e **Restaurar backup** para recuperá-los em outro navegador ou dispositivo. A restauração valida os dados e pede confirmação antes de substituir os registros existentes. Guarde o arquivo em lugar seguro: ele pode conter anotações pessoais, e não existe sincronização automática na nuvem.
+Você também pode usar **Baixar backup** para salvar seus planos, marcações e anotações em JSON e **Restaurar backup** para recuperá-los em outro navegador ou dispositivo. O aplicativo valida backups JSON de até 32 MB. A restauração pede confirmação e publica os dados depois que o armazenamento local aceita a gravação. Guarde o arquivo em lugar seguro: ele pode conter anotações pessoais, e não existe sincronização automática na nuvem.
 
 ## Como executar
 

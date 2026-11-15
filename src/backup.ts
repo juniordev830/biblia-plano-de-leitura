@@ -3,7 +3,20 @@ import type { Duration, ReadingPlan, ReadingState } from './plan.ts';
 
 const FORMAT = 'biblia-plano-de-leitura';
 const VERSION = 1;
-export const MAX_BACKUP_SIZE = 1_000_000;
+// Each of 1,189 notes may contain 4,000 UTF-16 units. JSON can use six
+// bytes per unit for an escaped character; leave room for reading history.
+export const MAX_BACKUP_SIZE = 32_000_000;
+
+export function validateBackupSize(bytes: number): void {
+  if (bytes > MAX_BACKUP_SIZE) {
+    throw new Error(`O arquivo excede o limite de ${MAX_BACKUP_SIZE / 1_000_000} MB.`);
+  }
+}
+
+function validateBackupText(content: string): void {
+  validateBackupSize(content.length);
+  validateBackupSize(new TextEncoder().encode(content).byteLength);
+}
 
 const validChapters = new Set(allChapters.map(chapter => chapter.code));
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -53,13 +66,13 @@ function validateState(value: unknown): ReadingState {
 }
 
 export function serializeBackup(state: ReadingState, exportedAt = new Date().toISOString()): string {
-  return JSON.stringify({ format: FORMAT, version: VERSION, exportedAt, data: validateState(state) }, null, 2);
+  const content = JSON.stringify({ format: FORMAT, version: VERSION, exportedAt, data: validateState(state) }, null, 2);
+  validateBackupText(content);
+  return content;
 }
 
 export function parseBackup(content: string): ReadingState {
-  if (content.length > MAX_BACKUP_SIZE) {
-    throw new Error('O arquivo excede o limite de 1 MB.');
-  }
+  validateBackupText(content);
   let parsed: unknown;
   try {
     parsed = JSON.parse(content);
