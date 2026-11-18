@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { books } from '../src/canon.ts';
-import { addDays, monthDays } from '../src/dates.ts';
+import { addDays, monthDays, monthOffset, parseCalendarDay } from '../src/dates.ts';
 import { allChapters, durations, makePlan, summarize } from '../src/plan.ts';
 
 test('catálogo cobre os 66 livros e 1189 capítulos', () => {
@@ -35,4 +35,19 @@ test('progresso e atraso respeitam a data e ignoram dias não pertencentes ao pl
 test('calendário respeita fevereiro bissexto e mudança de ano', () => {
   assert.equal(monthDays('2028-02').length, 29);
   assert.equal(addDays('2026-12-31', 1), '2027-01-01');
+  assert.equal(monthOffset('2026-12', 1), '2027-01');
+  assert.equal(monthOffset('2027-01', -1), '2026-12');
+});
+
+test('datas do plano são civis mesmo se o fuso pulou um dia local', t => {
+  const previous = process.env.TZ;
+  process.env.TZ = 'Pacific/Apia';
+  t.after(() => {
+    if (previous === undefined) delete process.env.TZ;
+    else process.env.TZ = previous;
+  });
+  assert.deepEqual(makePlan(30, '2011-12-29').slice(0, 3).map(entry => entry.date), [
+    '2011-12-29', '2011-12-30', '2011-12-31',
+  ]);
+  assert.equal(parseCalendarDay('2011-12-30').getUTCDay(), 5);
 });

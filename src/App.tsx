@@ -1,20 +1,14 @@
 import { useMemo, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { parseBackup, serializeBackup, validateBackupSize } from './backup.ts';
-import { addDays, dateKey, monthDays } from './dates.ts';
+import { addDays, dateKey, monthDays, monthOffset, parseCalendarDay } from './dates.ts';
 import { durations, makePlan, summarize } from './plan.ts';
 import type { Duration, ReadingPlan, ReadingState } from './plan.ts';
 import { useLocalState } from './storage.ts';
 
 const initial: ReadingState = { plans: {}, notes: {} };
-const formatDay = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' });
-const formatMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
-const parseDay = (key: string) => new Date(key + 'T12:00:00');
-const monthOffset = (month: string, delta: number) => {
-  const date = parseDay(month + '-01');
-  date.setMonth(date.getMonth() + delta);
-  return dateKey(date).slice(0, 7);
-};
+const formatDay = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeZone: 'UTC' });
+const formatMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 export default function App() {
   const today = dateKey();
@@ -34,7 +28,7 @@ export default function App() {
   const stats = summarize(plan, current.done, today);
   const chapter = selected.chapters.find(chapter => chapter.code === noteKey) ?? selected.chapters[0];
   const days = monthDays(month);
-  const blanks = Array.from({ length: (parseDay(days[0]).getDay() + 6) % 7 });
+  const blanks = Array.from({ length: (parseCalendarDay(days[0]).getUTCDay() + 6) % 7 });
 
   function updatePlan(update: (value: ReadingPlan) => ReadingPlan) {
     setState(previous => ({
@@ -141,7 +135,7 @@ export default function App() {
     <div className="split">
       <section className="panel stack">
         <div className="row between">
-          <h2>{selected.day}º dia · {formatDay.format(parseDay(selected.date))}</h2>
+          <h2>{selected.day}º dia · {formatDay.format(parseCalendarDay(selected.date))}</h2>
           <button className="primary" onClick={toggleReading}>{current.done[selected.day] ? 'Desmarcar leitura' : 'Concluir leitura'}</button>
         </div>
         <ul className="list reading-list">{selected.chapters.map(item => <li className="subtle" key={item.code}>{item.label}</li>)}</ul>
@@ -165,9 +159,9 @@ export default function App() {
       <aside className="stack">
         <section className="panel">
           <div className="row between">
-            <button aria-label="Mês anterior" onClick={() => setMonthView(monthOffset(month, -1))}>←</button>
-            <h2 className="month-title">{formatMonth.format(parseDay(month + '-01'))}</h2>
-            <button aria-label="Próximo mês" onClick={() => setMonthView(monthOffset(month, 1))}>→</button>
+            <button aria-label="Mês anterior" disabled={month <= '1900-01'} onClick={() => setMonthView(monthOffset(month, -1))}>←</button>
+            <h2 className="month-title">{formatMonth.format(parseCalendarDay(month + '-01'))}</h2>
+            <button aria-label="Próximo mês" disabled={month >= '9999-12'} onClick={() => setMonthView(monthOffset(month, 1))}>→</button>
           </div>
           <div className="calendar" aria-label="Calendário de leitura">
             {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(day => <small key={day}>{day}</small>)}
@@ -176,7 +170,7 @@ export default function App() {
               const entry = byDate.get(day);
               const done = entry && current.done[entry.day];
               return <button key={day} disabled={!entry} aria-pressed={day === selected.date}
-                aria-label={formatDay.format(parseDay(day)) + (done ? ', concluído' : '')}
+                aria-label={formatDay.format(parseCalendarDay(day)) + (done ? ', concluído' : '')}
                 className={done ? 'done-day' : ''} onClick={() => chooseDay(day)}>
                 {Number(day.slice(-2))}{done ? '✓' : ''}
               </button>;
@@ -191,7 +185,7 @@ export default function App() {
           <h2>Histórico de leituras</h2>
           {!stats.history.length && <p className="muted">Os dias concluídos aparecem aqui.</p>}
           <ul className="list">{stats.history.map(entry => <li key={entry.day}>
-            <button className="selection" onClick={() => chooseDay(entry.date)}>Dia {entry.day} · lido em {formatDay.format(parseDay(current.done[entry.day]))}</button>
+            <button className="selection" onClick={() => chooseDay(entry.date)}>Dia {entry.day} · lido em {formatDay.format(parseCalendarDay(current.done[entry.day]))}</button>
           </li>)}</ul>
         </section>
       </aside>
