@@ -119,7 +119,7 @@ export default function App() {
       <progress value={stats.percent} max={100} aria-label="Percentual de capítulos lidos" />
       <p className="muted">Meta atual de {selected.chapters.length} capítulos no dia {selected.day}. Reagendar mantém as marcações por número de dia.</p>
     </section>
-    <section className="panel stack" aria-label="Backup dos dados">
+    <section className="panel stack" aria-label="Backup dos dados" id="backup" tabIndex={-1}>
       <div>
         <h2>Backup dos seus estudos</h2>
         <p className="muted">Salve seus planos, leituras concluídas e anotações em um arquivo JSON. Os dados permanecem no seu dispositivo.</p>
@@ -133,7 +133,7 @@ export default function App() {
       {backupFeedback && <p role={backupFeedback.error ? 'alert' : 'status'} className={backupFeedback.error ? 'error' : 'muted'}>{backupFeedback.message}</p>}
     </section>
     <div className="split">
-      <section className="panel stack">
+      <section className="panel stack" id="leitura" tabIndex={-1}>
         <div className="row between">
           <h2>{selected.day}º dia · {formatDay.format(parseCalendarDay(selected.date))}</h2>
           <button className="primary" onClick={toggleReading}>{current.done[selected.day] ? 'Desmarcar leitura' : 'Concluir leitura'}</button>
@@ -181,7 +181,7 @@ export default function App() {
             <button disabled={!byDate.has(addDays(selected.date, 1))} onClick={() => chooseDay(addDays(selected.date, 1))}>Próxima leitura</button>
           </div>
         </section>
-        <section className="panel">
+        <section className="panel" id="historico" tabIndex={-1}>
           <h2>Histórico de leituras</h2>
           {!stats.history.length && <p className="muted">Os dias concluídos aparecem aqui.</p>}
           <ul className="list">{stats.history.map(entry => <li key={entry.day}>

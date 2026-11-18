@@ -16,7 +16,11 @@ createRoot(document.getElementById('root')!).render(
     <main id="conteudo">
       <div className="intro">
         <h1>Plano de leitura</h1>
-        <p>SUBPlano de leitura</p>
+        <nav className="atalhos" aria-label="Seções desta página">
+          <a href="#leitura">Leitura do dia</a>
+          <a href="#historico">Histórico</a>
+          <a href="#backup">Backup</a>
+        </nav>
       </div>
       <App />
     </main>
