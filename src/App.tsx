@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { parseBackup, serializeBackup, validateBackupSize } from './backup.ts';
+import { parseBackup, parseLocalState, serializeBackup, validateBackupSize } from './backup.ts';
 import { addDays, dateKey, monthDays, monthOffset, parseCalendarDay } from './dates.ts';
 import { durations, makePlan, summarize } from './plan.ts';
 import type { Duration, ReadingPlan, ReadingState } from './plan.ts';
@@ -12,7 +12,7 @@ const formatMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'num
 
 export default function App() {
   const today = dateKey();
-  const [state, setState, error, replaceState] = useLocalState('leitura-v1', initial);
+  const [state, setState, error, replaceState] = useLocalState('leitura-v1', initial, parseLocalState);
   const [duration, setDuration] = useState<Duration>(365);
   const [placeholderStart] = useState(today);
   const current = state.plans[duration] ?? { start: placeholderStart, done: {} };

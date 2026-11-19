@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_BACKUP_SIZE, parseBackup, serializeBackup } from '../src/backup.ts';
+import { MAX_BACKUP_SIZE, parseBackup, parseLocalState, serializeBackup } from '../src/backup.ts';
 import { allChapters } from '../src/plan.ts';
 import type { ReadingState } from '../src/plan.ts';
 
@@ -8,6 +8,11 @@ const sample: ReadingState = {
   plans: { 30: { start: '2028-02-29', done: { 1: '2028-02-29', 30: '2028-03-30' } } },
   notes: { 'GN:1': 'Criação e começo de tudo.', 'JO:3': 'Anotar João 3:16.' },
 };
+
+test('lê o formato local existente e rejeita objetos corrompidos', () => {
+  assert.deepEqual(parseLocalState(JSON.stringify(sample)), sample);
+  assert.throws(() => parseLocalState('{"plans":null, "notes":{}}'), /planos e anotações válidos/);
+});
 
 test('backup mantém plano, marcações e anotações após exportação e importação', () => {
   const content = serializeBackup(sample, '2028-03-30T12:00:00.000Z');
