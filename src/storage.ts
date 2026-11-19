@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 
-export function useLocalState<T>(key: string, fallback: T): [T, Dispatch<SetStateAction<T>>, string, (value: T) => void] {
-  const [state, setState] = useState(() => {
+export function useLocalState<T>(key: string, fallback: T, decode: (raw: string) => T): [T, Dispatch<SetStateAction<T>>, string, (value: T) => void] {
+  const [initial] = useState(() => {
     try {
       const raw = localStorage.getItem(key);
-      return raw === null ? fallback : JSON.parse(raw) as T;
+      return { value: raw === null ? fallback : decode(raw), error: '' };
     } catch {
-      return fallback;
+      return { value: fallback, error: 'Não foi possível ler os dados locais. Seus registros foram preservados. Use um backup válido para restaurar.' };
     }
   });
-  const [error, setError] = useState('');
+  const [state, setState] = useState(initial.value);
+  const [error, setError] = useState(initial.error);
+  const [blocked, setBlocked] = useState(Boolean(initial.error));
   const restored = useRef<{ key: string; value: T } | null>(null);
 
   function replaceState(value: T) {
@@ -21,17 +23,18 @@ export function useLocalState<T>(key: string, fallback: T): [T, Dispatch<SetStat
     }
     restored.current = { key, value };
     setState(value);
+    setBlocked(false);
     setError('');
   }
 
   useEffect(() => {
-    if (restored.current?.key === key && restored.current.value === state) return;
+    if (blocked || (restored.current?.key === key && restored.current.value === state)) return;
     try {
       localStorage.setItem(key, JSON.stringify(state));
       setError('');
     } catch {
       setError('O navegador impediu o armazenamento. As alterações podem se perder ao fechar a página.');
     }
-  }, [key, state]);
+  }, [blocked, key, state]);
   return [state, setState, error, replaceState];
 }

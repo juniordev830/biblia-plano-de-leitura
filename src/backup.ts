@@ -71,6 +71,10 @@ export function serializeBackup(state: ReadingState, exportedAt = new Date().toI
   return content;
 }
 
+export function parseLocalState(content: string): ReadingState {
+  return validateState(JSON.parse(content));
+}
+
 export function parseBackup(content: string): ReadingState {
   validateBackupText(content);
   let parsed: unknown;
