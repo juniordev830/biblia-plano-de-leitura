@@ -5,15 +5,17 @@ export function useLocalState<T>(key: string, fallback: T, decode: (raw: string)
   const [initial] = useState(() => {
     try {
       const raw = localStorage.getItem(key);
-      return { value: raw === null ? fallback : decode(raw), error: '' };
+      return { value: raw === null ? fallback : decode(raw), error: '', persisted: raw !== null };
     } catch {
       return { value: fallback, error: 'Não foi possível ler os dados locais. Seus registros foram preservados. Use um backup válido para restaurar.' };
     }
   });
   const [state, setState] = useState(initial.value);
+  const lastSaved = useRef<{ key: string; value: T } | null>(
+    initial.persisted ? { key, value: initial.value } : null,
+  );
   const [error, setError] = useState(initial.error);
   const [blocked, setBlocked] = useState(Boolean(initial.error));
-  const restored = useRef<{ key: string; value: T } | null>(null);
 
   function replaceState(value: T) {
     try {
@@ -21,16 +23,18 @@ export function useLocalState<T>(key: string, fallback: T, decode: (raw: string)
     } catch {
       throw new Error('Não foi possível gravar o backup no navegador. Os registros anteriores foram preservados.');
     }
-    restored.current = { key, value };
+    lastSaved.current = { key, value };
     setState(value);
     setBlocked(false);
     setError('');
   }
 
   useEffect(() => {
-    if (blocked || (restored.current?.key === key && restored.current.value === state)) return;
+    if (blocked) return;
+    if (lastSaved.current?.key === key && Object.is(lastSaved.current.value, state)) return;
     try {
       localStorage.setItem(key, JSON.stringify(state));
+      lastSaved.current = { key, value: state };
       setError('');
     } catch {
       setError('O navegador impediu o armazenamento. As alterações podem se perder ao fechar a página.');
